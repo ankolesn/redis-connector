@@ -1,0 +1,3 @@
+[submodule "concurrent-queue"]
+	path = concurrent-queue
+	url = https://github.com/justnik98/concurrent-queue.git
