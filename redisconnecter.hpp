@@ -4,15 +4,18 @@
 
 #ifndef REDIS_CONNECTOR_REDISCONNECTER_HPP
 #define REDIS_CONNECTOR_REDISCONNECTER_HPP
+
 #include <string>
 #include <iostream>
 #include <vector>
 #include <thread>
 #include "concurrent-queue/queue.hpp"
 #include <sw/redis++/redis++.h>
+#include <atomic>
 
 namespace redis {
     using std::string;
+
     class RedisConnecter {
     private:
         string ip = "127.0.0.1";
@@ -22,11 +25,11 @@ namespace redis {
         Concurrent_queue<std::pair<string, string>> cq;
         sw::redis::ConnectionOptions opts1;
         std::unique_ptr<sw::redis::Redis> r;
+        std::atomic<bool> is_stopped = false;
 
-sw::redis::Subscriber* sub;
+        sw::redis::Subscriber *sub;
     public:
         RedisConnecter();
-        RedisConnecter(string &ip, int port, sw::redis::Redis r, sw::redis::Subscriber sub);
 
         void read_from();
 
@@ -36,12 +39,15 @@ sw::redis::Subscriber* sub;
 
         void run_command(const string &cmd);
 
-        void do_work(){
+        [[noreturn]] void do_work() {
             std::pair<string, string> p;
-            while(true){
+            while (true) {
                 cq.wait_and_pop(p);
-                if (p.first == "cmd"){
+                if (p.first == "cmd") {
                     run_command(p.second);
+                }
+                if (is_stopped) {
+                    continue;
                 }
                 std::cout << p.first << " " << p.second << std::endl;
             }
